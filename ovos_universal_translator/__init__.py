@@ -2,6 +2,7 @@ from ovos_utils.log import LOG
 from ovos_utils.messagebus import FakeBus
 from ovos_plugin_manager.language import OVOSLangTranslationFactory
 from ovos_plugin_manager.templates.language import LanguageTranslator
+from ovos_plugin_manager.templates.tts import TTS
 from ovos_audio.service import PlaybackService
 from ovos_dinkum_listener.service import OVOSDinkumVoiceService
 from ovos_stt_plugin_fasterwhisper import FasterWhisperLangClassifier
@@ -34,6 +35,7 @@ class UniversalTranslator(OVOSDinkumVoiceService):
                  output_languages: List[str],
                  lang_classifier: FasterWhisperLangClassifier,
                  translator: Optional[LanguageTranslator]=None,
+                 braille_tts: Optional[TTS] = None,
                  on_ready=on_ready, on_error=on_error,
                  on_stopping=on_stopping, on_alive=on_alive,
                  on_started=on_started, watchdog=lambda: None):
@@ -42,6 +44,7 @@ class UniversalTranslator(OVOSDinkumVoiceService):
         self.input_langs = input_languages
         self.output_langs = output_languages
         self.audio = PlaybackService(bus=self.bus)
+        self.braille = braille_tts
         self.translator = translator or OVOSLangTranslationFactory.create()
         self.lang_clf = lang_classifier or FasterWhisperLangClassifier()
         self.validate_languages()
@@ -73,6 +76,10 @@ class UniversalTranslator(OVOSDinkumVoiceService):
         if text and lang:  # handle empty transcripts
             text = text.strip()
             LOG.info(f"Lang: {lang} STT: {text}")
+            if self.braille:
+                LOG.info("Outputting to Braille keyboard")
+                self.braille.execute(text, lang=lang)
+
             for target_lang in self.output_langs:
                 if target_lang == lang:
                     continue
