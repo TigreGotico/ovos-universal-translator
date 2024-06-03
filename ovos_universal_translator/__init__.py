@@ -1,12 +1,14 @@
-from ovos_utils.log import LOG
-from ovos_utils.messagebus import FakeBus
+from typing import Optional, List
+
+from ovos_audio.service import PlaybackService
 from ovos_plugin_manager.language import OVOSLangTranslationFactory
 from ovos_plugin_manager.templates.language import LanguageTranslator
 from ovos_plugin_manager.templates.tts import TTS
-from ovos_audio.service import PlaybackService
+from ovos_utils.log import LOG
+from ovos_utils.messagebus import FakeBus
+
 from ovos_dinkum_listener.service import OVOSDinkumVoiceService
 from ovos_stt_plugin_fasterwhisper import FasterWhisperLangClassifier
-from typing import Optional, List
 
 
 def on_ready():
@@ -31,10 +33,11 @@ def on_error(e='Unknown'):
 
 class UniversalTranslator(OVOSDinkumVoiceService):
     """STT, VAD, Mic and TTS plugins come from mycroft.conf as usual"""
+
     def __init__(self, input_languages: List[str],
                  output_languages: List[str],
                  lang_classifier: FasterWhisperLangClassifier,
-                 translator: Optional[LanguageTranslator]=None,
+                 translator: Optional[LanguageTranslator] = None,
                  braille_tts: Optional[TTS] = None,
                  on_ready=on_ready, on_error=on_error,
                  on_stopping=on_stopping, on_alive=on_alive,
