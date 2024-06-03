@@ -1,10 +1,8 @@
 from ovos_utils.log import LOG
 from ovos_utils.messagebus import FakeBus
-from ovos_plugin_manager.templates.tts import TTS
-from ovos_plugin_manager.templates.stt import STT
-from ovos_plugin_manager.templates.microphone import Microphone
-from ovos_plugin_manager.templates.vad import VADEngine
+from ovos_plugin_manager.language import OVOSLangTranslationFactory
 from ovos_plugin_manager.templates.language import LanguageTranslator
+from ovos_audio.service import PlaybackService
 from ovos_dinkum_listener.service import OVOSDinkumVoiceService
 from ovos_stt_plugin_fasterwhisper import FasterWhisperLangClassifier
 from typing import Optional, List
@@ -31,26 +29,20 @@ def on_error(e='Unknown'):
 
 
 class UniversalTranslator(OVOSDinkumVoiceService):
+    """STT, VAD, Mic and TTS plugins come from mycroft.conf as usual"""
     def __init__(self, input_languages: List[str],
                  output_languages: List[str],
-                 tts: TTS = None,
-                 lang_classifier: FasterWhisperLangClassifier = None,
+                 lang_classifier: FasterWhisperLangClassifier,
+                 translator: Optional[LanguageTranslator]=None,
                  on_ready=on_ready, on_error=on_error,
                  on_stopping=on_stopping, on_alive=on_alive,
-                 on_started=on_started, watchdog=lambda: None,
-                 mic: Optional[Microphone] = None,
-                 stt: Optional[STT] = None,
-                 fallback_stt: Optional[STT] = None,
-                 vad: Optional[VADEngine] = None,
-                 translator: Optional[LanguageTranslator] = None):
+                 on_started=on_started, watchdog=lambda: None):
         super().__init__(on_ready, on_error, on_stopping,
-                         on_alive, on_started, watchdog,
-                         mic=mic, stt=stt, vad=vad,
-                         fallback_stt=fallback_stt)
+                         on_alive, on_started, watchdog)
         self.input_langs = input_languages
         self.output_langs = output_languages
-        self.tts = tts
-        self.translator = translator
+        self.audio = PlaybackService(bus=self.bus)
+        self.translator = translator or OVOSLangTranslationFactory.create()
         self.lang_clf = lang_classifier or FasterWhisperLangClassifier()
         self.validate_languages()
 
@@ -59,7 +51,7 @@ class UniversalTranslator(OVOSDinkumVoiceService):
         for lang in self.input_langs:
             assert lang in self.stt.available_languages
         for lang in self.output_langs:
-            assert lang in self.tts.available_languages
+            assert lang in self.audio.tts.available_languages
             assert lang in self.translator.available_languages
 
     def _connect_to_bus(self):
@@ -89,4 +81,4 @@ class UniversalTranslator(OVOSDinkumVoiceService):
                                                        target=target_lang,
                                                        source=lang)
                 LOG.info(f"Speaking in {target_lang}")
-                self.tts.execute(translated, lang=target_lang)
+                self.audio.tts.execute(translated, lang=target_lang)
