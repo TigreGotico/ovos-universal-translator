@@ -70,7 +70,7 @@ class UniversalTranslator(OVOSDinkumVoiceService):
 
     def _stt_audio(self, audio_bytes: bytes, stt_context: dict):
         # language detection here
-        lang = self.lang_clf.detect(audio_bytes, self.input_langs)
+        lang, lang_probability = self.lang_clf.detect(audio_bytes, self.input_langs)
         stt_context["stt_lang"] = lang
         return stt_context
 
